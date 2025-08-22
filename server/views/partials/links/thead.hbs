@@ -1,0 +1,240 @@
+<thead>
+  <tr class="controls links-controls">
+    <th class="search">
+      <input class="table-input search" id="search" name="search" type="text" placeholder="Search..." hx-on:keyup="resetTableNav()" />
+      <input id="total" name="total" type="hidden" value="{{total}}" />
+      <input id="limit" name="limit" type="hidden" value="10" />
+      <input id="skip" name="skip" type="hidden" value="0" />
+      <div id="actions-custom-tiger" style="display: none; gap: 0.5rem; align-items: center; margin-left: 1rem;">
+        <button id="editcustombtn" class="button primary">Update</button>
+       <button id="deletecustombtn" class="button danger">Delete</button>
+      </div>
+    </th>
+    {{> links/nav}}
+  </tr>
+  <tr>
+    <th><label font-size="14,15" class="sc-AykKC sc-AykKD jGqddX" style="cursor: pointer;"><input id="selectall" name="selectall" type="checkbox" width="0" height="0" opacity="0" class="sc-AykKC sc-AykKD Input__CheckboxInput-sc-1u39ir1-2 bryDAE"><div width="15,16" height="15,16" class="sc-AykKC sc-AykKD Input__CheckboxBox-sc-1u39ir1-3 ldGqXr"></div><span color="#555" class="sc-AykKC Text-sc-9gh1w5-0 henEeO"></span></label></th>
+    <th class="original-url">Original URL</th>
+    <th class="created-at">Created at</th>
+    <th class="short-link">Short URL</th>
+    <th class="views">Views</th>
+    <th class="actions"></th>
+  </tr>
+</thead>
+
+<script>
+  const getSearchAllBtn = document.getElementById('selectall');
+
+  getSearchAllBtn.addEventListener('change', function() {
+        const checked = this.checked;
+        let isshown = false;
+        const getAllCheckboxes = document.querySelectorAll('input.percheckbox');
+        let totalBoxesSelected = 0;
+
+    getAllCheckboxes.forEach((input) => {
+        input.checked = checked;
+        isshown = checked;
+        totalBoxesSelected  = document.querySelectorAll("input.percheckbox:checked").length;
+    });
+  });
+
+const detectBoxes = setInterval(() => {
+  const getAllBoxes = document.querySelectorAll('input.percheckbox');
+
+document.addEventListener('change', function(event) {
+  getAllBoxes.forEach((item) => {
+    const getAllChecked = document.querySelectorAll('input.percheckbox:checked');
+    if(getAllChecked.length > 0) {
+        actionCstmNav(true, getAllChecked.length)
+
+    } else {
+        actionCstmNav(false, 0)
+
+    }
+  })
+
+});
+
+if(getAllBoxes.length > 0) {
+  clearInterval(detectBoxes)
+}
+
+}, 100)
+
+function actionCstmNav(box, totalInputBoxesChecked) {
+
+ const getActionCstm = document.getElementById('actions-custom-tiger');
+        const getTdActionsDefault = document.querySelectorAll('td.actions');
+        const getTdAdditional = document.querySelectorAll('td.additionaltd');
+        const getCstmEdit = document.getElementById('editcustombtn');
+        const getCstmDelete = document.getElementById('deletecustombtn');
+
+        if(box) {
+          getActionCstm.style.display = 'flex';
+
+          getCstmEdit.textContent = `Update (${totalInputBoxesChecked})`;
+          getCstmDelete.textContent = `Delete (${totalInputBoxesChecked})`;
+
+          getTdActionsDefault.forEach((item) => {
+            item.style.display = 'none';
+          })
+
+          getTdAdditional.forEach((item) => {
+            item.style.display = 'block';
+          });
+
+        } else {
+          getActionCstm.style.display = 'none';
+            getTdActionsDefault.forEach((item) => {
+            item.style.display = 'flex';
+          });
+
+          getTdAdditional.forEach((item) => {
+            item.style.display = 'none';
+          });
+        }
+}
+
+// Update and Delete Button Clicked:
+
+// Edit Selected Links:
+
+const getUpdateButton = document.getElementById('editcustombtn');
+
+getUpdateButton.addEventListener('click', async function() {
+
+   try {
+
+    const getAllChecked = document.querySelectorAll('input.percheckbox:checked');
+
+    if (getAllChecked.length === 0) {
+        alert('Setidaknya pilih link untuk diupdate');
+        return;
+    }
+
+    // Collect values using prompts
+    const target = prompt("Target link baru (kosongkan bila tidak ingin update):");
+    const address = prompt("Shortlink baru (kosongkan bila tidak ingin update):");
+    const description = prompt("Deskripsi Link (kosongkan bila tidak ingin update):");
+    const expire_in = prompt("Expire Link (kosongkan bila tidak ingin update):");
+    const password = prompt("Password untuk akses link (kosongkan bila tidak ingin update):");
+
+    const data = {};
+    if (address) data.address = address;
+    if (target) data.target = target;
+    if (description) data.description = description;
+    if (expire_in) data.expire_in = expire_in;
+    if (password) data.password = password;
+
+    if (Object.keys(data).length === 0) {
+            alert("Tidak ada Perubahan!!.");
+            return;
+    }
+
+      const promises = Array.from(getAllChecked).map(item => {
+              const id = item.name;
+              const fullUrl = window.location.origin;
+              return updateLink(id, fullUrl, data);
+          });
+
+      await Promise.all(promises);
+
+      alert("Link yang dipilih sudah diupdate!");
+      location.reload();
+
+    } catch (error) {
+      console.error(error);
+      alert('Error on Updating Link')
+    }
+
+});
+
+
+// Delete Selected Links:
+const getDeleteButton = document.getElementById('deletecustombtn');
+
+getDeleteButton.addEventListener('click', async function() {
+     const getAllChecked = document.querySelectorAll('input.percheckbox:checked');
+
+    if (getAllChecked.length === 0) {
+        alert('Setidaknya pilih link untuk dihapus!');
+        return;
+    }
+
+    let confirmDelete = confirm("Are you sure you want to delete the URL?");
+
+     if(confirmDelete) {
+         try {
+            const promises = Array.from(getAllChecked).map(item => {
+              const id = item.name;
+              const fullUrl = window.location.origin;
+              return deleteLink(id, fullUrl);
+          });
+
+          await Promise.all(promises);
+
+              alert("Link yang dipilih sudah dihapus!");
+              location.reload();
+         } catch(error) {
+            console.error(error)
+            alert('Error on Deleting Links');
+         }
+
+     }
+
+});
+
+
+async function updateLink(id, url, data) {
+  try {
+
+    const response = await fetch(`/api/links/admin/${id}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Error updating link:", errorData);
+            alert("Failed to update link.");
+            return;
+        }
+
+        const updatedLink = await response.json();
+        console.log("Link updated successfully:", updatedLink);
+
+  } catch(error) {
+    console.log(error);
+  }
+}
+
+async function deleteLink(id, url) {
+   try {
+
+          const response = await fetch(`${url}/api/links/${id}`, {
+            method : "DELETE",
+            headers : {
+             "Content-Type": "application/json"
+            }
+          });
+
+          if(!response.ok) {
+            throw new Error('Error on Deleting Selected Links');
+          }
+
+          const data = await response.json();
+
+          console.log(data.message);
+
+        } catch (error) {
+
+          console.error(error)
+
+        }
+}
+
+</script>
